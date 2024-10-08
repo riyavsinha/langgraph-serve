@@ -43,6 +43,7 @@ from langsmith.schemas import FeedbackIngestToken
 from langsmith.utils import tracing_is_enabled
 from pydantic import BaseModel, Field, RootModel, ValidationError, create_model
 from pydantic.v1 import BaseModel as BaseModelV1
+from pydantic_partial import create_partial_model
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from typing_extensions import TypedDict
@@ -132,7 +133,8 @@ def _create_metadata_event(
     }
     if feedback_ingest_token:
         if not feedback_key:
-            raise ValueError("Feedback key must be provided if feedback token is given")
+            raise ValueError(
+                "Feedback key must be provided if feedback token is given")
 
         if feedback_ingest_token.expires_at:
             expires_at = feedback_ingest_token.expires_at.isoformat()
@@ -187,13 +189,15 @@ async def _unpack_request_config(
     config_dicts = []
     for config in client_sent_configs:
         if isinstance(config, str):
-            config_dicts.append(model(**_config_from_hash(config)).model_dump())
+            config_dicts.append(
+                model(**_config_from_hash(config)).model_dump())
         elif isinstance(config, BaseModel):
             config_dicts.append(config.model_dump())
         elif isinstance(config, Mapping):
             config_dicts.append(model(**config).model_dump())
         else:
-            raise TypeError(f"Expected a string, dict or BaseModel got {type(config)}")
+            raise TypeError(
+                f"Expected a string, dict or BaseModel got {type(config)}")
     config = merge_configs(*config_dicts)
     if "configurable" in config and config["configurable"]:
         if "configurable" not in config_keys:
@@ -215,7 +219,8 @@ async def _unpack_request_config(
         if inspect.iscoroutinefunction(per_req_config_modifier):
             projected_config = await per_req_config_modifier(projected_config, request)
         else:
-            projected_config = per_req_config_modifier(projected_config, request)
+            projected_config = per_req_config_modifier(
+                projected_config, request)
 
     return projected_config
 
@@ -394,7 +399,8 @@ def _scrub_exceptions_in_event(event: CallbackEventDict) -> CallbackEventDict:
 
     if isinstance(event["error"], BaseException):
         event.copy()
-        event["error"] = {"status_code": 500, "message": "Internal Server Error"}
+        event["error"] = {"status_code": 500,
+                          "message": "Internal Server Error"}
         return event
 
     raise AssertionError(f"Expected an exception got {type(event['error'])}")
@@ -683,7 +689,8 @@ class APIHandler:
 
         self._runnable = runnable
 
-        model_namespace = _replace_non_alphanumeric_with_underscores(path.strip("/"))
+        model_namespace = _replace_non_alphanumeric_with_underscores(
+            path.strip("/"))
 
         try:
             input_type_ = _resolve_model(
@@ -838,6 +845,13 @@ class APIHandler:
             # This takes into account changes in the input type when
             # using configuration.
             schema = self._runnable.with_config(config).input_schema
+            # START LG_MODIFICATION
+            # This allows the input to the model to be only a partial of the required state
+            schema = create_partial_model(schema)
+            # This allows LangGraph to send None as an input to the runnable, which is used to continue chain execution
+            if not body.input:
+                return config, None
+            # END LG_MODIFICATION
             input_ = schema.model_validate(body.input)
             return config, _unpack_input(input_)
         except ValidationError as e:
@@ -999,13 +1013,15 @@ class APIHandler:
 
         inputs = [
             _unpack_input(
-                self._runnable.with_config(config_).input_schema.model_validate(input_)
+                self._runnable.with_config(
+                    config_).input_schema.model_validate(input_)
             )
             for config_, input_ in zip(configs_, inputs_)
         ]
 
         # Update the configuration with callbacks
-        aggregators = [AsyncEventAggregatorCallback() for _ in range(len(inputs))]
+        aggregators = [AsyncEventAggregatorCallback()
+                       for _ in range(len(inputs))]
 
         final_configs = []
         for config_, aggregator in zip(configs_, aggregators):
@@ -1310,7 +1326,8 @@ class APIHandler:
                     # Send a metadata event as soon as possible
                     if not has_sent_metadata and self._token_feedback_enabled:
                         if task is None:
-                            raise AssertionError("Feedback token task was not created.")
+                            raise AssertionError(
+                                "Feedback token task was not created.")
                         if not task.done():
                             continue
                         feedback_token = task.result()
@@ -1407,7 +1424,8 @@ class APIHandler:
                         in self._names_in_stream_allow_list
                     ):
                         # Strip internal metadata from the event
-                        event["metadata"] = _strip_internal_keys(event["metadata"])
+                        event["metadata"] = _strip_internal_keys(
+                            event["metadata"])
                         yield {
                             # EventSourceResponse expects a string for data
                             # so after serializing into bytes, we decode into utf-8
@@ -1419,7 +1437,8 @@ class APIHandler:
                     # Send a metadata event as soon as possible
                     if not has_sent_metadata and self._token_feedback_enabled:
                         if task is None:
-                            raise AssertionError("Feedback token task was not created.")
+                            raise AssertionError(
+                                "Feedback token task was not created.")
                         if not task.done():
                             continue
                         feedback_token = task.result()

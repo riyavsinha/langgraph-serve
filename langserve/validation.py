@@ -350,10 +350,14 @@ class InvokeRequestShallowValidator(BaseModel):
     """Shallow validator for Invoke Request.
 
     Validate basic shape of invoke request, downstream code
-    is expected to do further validation.
+    is expected to do further validation. 
     """
 
-    input: Any = Field(..., description="The input to the runnable.")
+    ### START LG_MODIFICATION
+    # Make input optional. This enables LangGraph to send an empty input to the tool to continue graph execution.
+    input: Optional[Any] = Field(
+        None, description="The input to the runnable.")
+    ### END LG_MODIFICATION
     config: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
