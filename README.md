@@ -15,6 +15,10 @@ List of modifications:
 TODO(help-wanted):
 - [ ] Make updating langgraph state endpoint disableable
 
+## Known Issues
+
+- In the current version of `langgraph-checkpoint`, Langgraph's model validation gives an incorrect config, which causes errors when LangGraphServe tries to validate the config prior to saving the checkpoint [link](https://github.com/langchain-ai/langgraph/issues/2033). I have submitted the fix already, and so this should be fixed in the next release of `langgraph-checkpoint`. In the meantime, you can manually path the fix in `langgraph-checkpoint`: [link](https://github.com/langchain-ai/langgraph/commit/61798d09d2fadbe6d2e52ac6c3dc086f2d50d4e3).
+
 # Original Documentation
 
 [![Release Notes](https://img.shields.io/github/release/langchain-ai/langserve)](https://github.com/langchain-ai/langserve/releases)
