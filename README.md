@@ -1,5 +1,11 @@
 # 🦜️🏓 LangGraph Serve
 
+## Install
+
+```
+pip install langgraph-serve
+```
+
 ## Fork Notes
 
 This repository is intended to make modifications to the LangServe library to better support LangGraph runnables.

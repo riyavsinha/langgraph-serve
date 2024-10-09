@@ -8,6 +8,9 @@ license = "LangServe"
 repository = "https://github.com/riyavsinha/langgraph-serve"
 exclude = ["langserve/playground,langserve/chat_playground"]
 include = ["langserve/playground/dist/**/*", "langserve/chat_playground/dist/**/*"]
+packages = [
+    { include = "langserve" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"

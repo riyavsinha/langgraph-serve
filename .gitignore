@@ -163,3 +163,5 @@ cython_debug/
 
 # IntelliJ IDE's
 .idea
+
+.DS_Store
