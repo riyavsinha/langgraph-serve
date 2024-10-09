@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langgraph_serve"
-version = "0.3.3"
+version = "0.3.4"
 description = ""
 readme = "README.md"
 authors = ["Riya Sinha", "LangChain"]
