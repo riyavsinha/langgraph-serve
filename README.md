@@ -14,6 +14,7 @@ List of modifications:
 
 TODO(help-wanted):
 - [ ] Make updating langgraph state endpoint disableable
+- [ ] Test frontend compatibility
 
 ## Known Issues
 
