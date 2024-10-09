@@ -11,8 +11,9 @@ List of modifications:
 - [api_handler,validation] Allow `None` as a valid value for the `input` field in the APIHandler request body. This allows the user to continue LangGraph chains after interruptions per the LangGraph specification.
 
 TODO(help-wanted):
-- Add api_handler method for updating state
-- Add api_handler method for adding messages
+- [x] Add api_handler method for updating state
+- [ ] Make updating langgraph state endpoint disableable
+- [ ] Add api_handler method for adding messages
 
 # Original Documentation
 

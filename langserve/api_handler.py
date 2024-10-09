@@ -1464,6 +1464,43 @@ class APIHandler:
                 raise
 
         return EventSourceResponse(_stream_events())
+    
+    ### START LG_MODIFICATION
+    async def update_langgraph_state(
+        self,
+        request: Request,
+        *,
+        config_hash: str = "",
+        server_config: Optional[RunnableConfig] = None,
+    ) -> Response:
+        """Update the langgraph runnable state with the given input and config.
+
+        Args:
+            request: The request object.
+            config_hash: A compressed representation of a config.
+                Originates from the client side. This config must be validated.
+            server_config: optional server configuration that will be merged
+                with any other configuration. It's the last to be written, so
+                it will override any other configuration.
+        """
+        config, input_ = await self._get_config_and_input(
+            request,
+            config_hash,
+            server_config=server_config,
+            # input_required=True,
+        )
+
+        if not hasattr(self._runnable, "update_state"):
+            raise HTTPException(
+                400,
+                "The runnable is not a LangGraph graph.",
+            )
+
+        filtered_input = {k: v for k, v in input_.items() if v is not None}
+        self._runnable.update_state(config, filtered_input)
+
+        return Response(status_code=200)
+    ### END LG_MODIFICATION
 
     async def input_schema(
         self,

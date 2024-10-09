@@ -858,3 +858,21 @@ class RemoteRunnable(Runnable[Input, Output]):
             raise
         else:
             await run_manager.on_chain_end(events)
+
+    ### START LG_MODIFICATION
+    def update_langgraph_state(
+        self, input: Input, config: Optional[RunnableConfig] = None, **kwargs: Any
+    ):
+        if kwargs:
+            raise NotImplementedError(
+                "kwargs not implemented for update_langgraph_state endpoint.")
+        response = self.sync_client.post(
+            "/update_langgraph_state",
+            json={
+                "input": self._lc_serializer.dumpd(input),
+                "config": _prepare_config_for_server(config),
+                "kwargs": kwargs,
+            },
+        )
+        return response.is_success
+    ### END LG_MODIFICATION

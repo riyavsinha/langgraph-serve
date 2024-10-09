@@ -138,3 +138,27 @@ def test_interrupting_langgraph(interrupting_app: FastAPI):
         )
         assert len(response["messages"]) == 2
         assert response["messages"][1].content == "Resuming execution!"
+
+
+def test_update_langgraph_state_endpoint(interrupting_app: FastAPI):
+    with get_sync_remote_runnable(interrupting_app) as remote_runnable:
+        config = {"configurable": {"thread_id": "2"}}
+        config = {"configurable": {"thread_id": "1"}}
+        response = remote_runnable.invoke(
+            {"input": "Hello, world!", "messages": []}, config=config
+        )
+        assert response["messages"][0].content == "Hello, world!"
+
+        # Add message according to langgraph state reducer
+        response = remote_runnable.update_langgraph_state(
+            {"messages": [AIMessage(content="modified!")]}, config=config
+        )
+        assert response is True
+
+        response = remote_runnable.invoke(
+            {}, config=config
+        )
+        assert len(response["messages"]) == 3
+        assert response["messages"][0].content == "Hello, world!"
+        assert response["messages"][1].content == "modified!"
+        assert response["messages"][2].content == "Resuming execution!"

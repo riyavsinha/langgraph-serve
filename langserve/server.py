@@ -65,6 +65,9 @@ EndpointName = Literal[
     "config_schema",
     "output_schema",
     "config_hashes",
+    ### START LG_MODIFICATION
+    "update_langgraph_state",
+    ### END LG_MODIFICATION
 ]
 
 # Contains same information as EndpointName but as a set.
@@ -83,6 +86,9 @@ KNOWN_ENDPOINTS = {
     "config_schema",
     "output_schema",
     "config_hashes",
+    ### START LG_MODIFICATION
+    "update_langgraph_state",
+    ### END LG_MODIFICATION
 }
 
 
@@ -278,6 +284,9 @@ def add_routes(
     * /input_schema - for returning the input schema of the runnable
     * /output_schema - for returning the output schema of the runnable
     * /config_schema - for returning the config schema of the runnable
+    ### START LG_MODIFICATION
+    * /update_langgraph_state - for updating the state of a langgraph runnable
+    ### END LG_MODIFICATION
 
     Args:
         app: The FastAPI app or APIRouter to which routes should be added.
@@ -596,6 +605,21 @@ def add_routes(
                 # The API Handler validates the parts of the request
                 # that are used by the runnnable (e.g., input, config fields)
                 return await api_handler.stream_log(request, config_hash=config_hash)
+            
+    ### START LG_MODIFICATION
+    # TODO: Make conditional / disableable
+    @app.post(
+        f"{namespace}/update_langgraph_state",
+        include_in_schema=False,
+        dependencies=dependencies,
+    )
+    async def update_langgraph_state(request: Request) -> Response:
+        """Handle a request."""
+        # The API Handler validates the parts of the request
+        # that are used by the runnnable (e.g., input, config fields)
+        return await api_handler.update_langgraph_state(request)
+    ### END LG_MODIFICATION
+
 
     if has_astream_events and endpoint_configuration.is_stream_events_enabled:
 
