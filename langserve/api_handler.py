@@ -723,6 +723,7 @@ class APIHandler:
                 "Output",
                 model_namespace,
             )
+            output_type_ = create_partial_model(output_type_)
         except Exception as e:
             # Attempt to surface a more informative user facing error
             raise_original_error = True
@@ -846,9 +847,11 @@ class APIHandler:
             # using configuration.
             schema = self._runnable.with_config(config).input_schema
             # START LG_MODIFICATION
-            # This allows the input to the model to be only a partial of the required state
+            # This allows the input to the model to be only a
+            # partial of the required state
             schema = create_partial_model(schema)
-            # This allows LangGraph to send None as an input to the runnable, which is used to continue chain execution
+            # This allows LangGraph to send None as an input to the runnable,
+            # which is used to continue chain execution
             if not body.input:
                 return config, None
             # END LG_MODIFICATION
@@ -1013,8 +1016,9 @@ class APIHandler:
 
         inputs = [
             _unpack_input(
-                self._runnable.with_config(
-                    config_).input_schema.model_validate(input_)
+                create_partial_model(
+                    self._runnable.with_config(config_).input_schema
+                ).model_validate(input_)
             )
             for config_, input_ in zip(configs_, inputs_)
         ]

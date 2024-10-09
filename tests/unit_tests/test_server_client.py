@@ -347,6 +347,44 @@ async def test_server_async(app: FastAPI) -> None:
         response = await async_client.post("/stream_log", json={"input": 1})
         assert response.text.startswith("event: data\r\n")
 
+        # START LG_MODIFICATION
+        # Test invoke empty input
+        response = await async_client.post("/invoke", json={})
+        assert response.json()["output"] is None
+        events = response.json()["callback_events"]
+        assert [event["type"] for event in events] == ["on_chain_start", "on_chain_end"]
+
+        # Test batch empty input
+        response = await async_client.post("/batch", json={"inputs": [None, 1]})
+        assert response.json()["output"] == [None, 2]
+        events = response.json()["callback_events"]
+        assert [event["type"] for event in events[0]] == [
+            "on_chain_start",
+            "on_chain_end",
+        ]
+        assert [event["type"] for event in events[1]] == [
+            "on_chain_start",
+            "on_chain_end",
+        ]
+
+        # Test stream empty input
+        response = await async_client.post("/stream", json={})
+        response_text_with_run_id_replaced = _replace_run_id_in_stream_resp(
+            response.text
+        )
+        expected_response_with_run_id_replaced = (
+            'event: metadata\r\ndata: {"run_id": "<REPLACED>"}\r\n\r\n'
+            + "event: data\r\ndata: null\r\n\r\nevent: end\r\n\r\n"
+        )
+        assert (
+            response_text_with_run_id_replaced == expected_response_with_run_id_replaced
+        )
+
+        # Test stream_log empty input
+        response = await async_client.post("/stream_log", json={})
+        assert response.text.startswith("event: data\r\n")
+        # END LG_MODIFICATION
+
     # test bad requests
     async with get_async_test_client(app, raise_app_exceptions=True) as async_client:
         # Test invoke
@@ -354,10 +392,13 @@ async def test_server_async(app: FastAPI) -> None:
         # Client side error bad json.
         assert response.status_code == 422
 
-        # Missing `input`
-        response = await async_client.post("/invoke", json={})
-        # Client side error bad json.
-        assert response.status_code == 422
+        # START LG_MODIFICATION
+        # Empty input should no longer be treated as bad request
+        # # Missing `input`
+        # response = await async_client.post("/invoke", json={})
+        # # Client side error bad json.
+        # assert response.status_code == 422
+        # END LG_MODIFICATION
 
         # Missing `input`
         response = await async_client.post(
@@ -374,7 +415,9 @@ async def test_server_async(app: FastAPI) -> None:
         # Client side error bad json.
         assert response.status_code == 422
 
-        # Missing `inputs`
+        # LG_COMMENT: We still want empty requests to batch to be treated as
+        # bad requests; however, batch should be able to contain empty inputs
+        # within the list
         response = await async_client.post("/batch", json={})
         assert response.status_code == 422
 
@@ -398,16 +441,22 @@ async def test_server_async(app: FastAPI) -> None:
         response = await async_client.post("/stream", content="bad json []")
         assert response.status_code == 422
 
-        response = await async_client.post("/stream", json={})
-        assert response.status_code == 422
+        # START LG_MODIFICATION
+        # Empty input should no longer be treated as bad request
+        # response = await async_client.post("/stream", json={})
+        # assert response.status_code == 422
+        # END LG_MODIFICATION
 
     # test stream_log bad requests
     async with get_async_test_client(app, raise_app_exceptions=True) as async_client:
         response = await async_client.post("/stream_log", content="bad json []")
         assert response.status_code == 422
 
-        response = await async_client.post("/stream_log", json={})
-        assert response.status_code == 422
+        # START LG_MODIFICATION
+        # Empty input should no longer be treated as bad request
+        # response = await async_client.post("/stream_log", json={})
+        # assert response.status_code == 422
+        # END LG_MODIFICATION
 
 
 async def test_server_astream_events(app: FastAPI) -> None:
@@ -468,8 +517,11 @@ async def test_server_astream_events(app: FastAPI) -> None:
         response = await async_client.post("/stream_events", content="bad json []")
         assert response.status_code == 422
 
-        response = await async_client.post("/stream_events", json={})
-        assert response.status_code == 422
+        ### START LG_MODIFICATION
+        # Empty input should no longer be treated as bad request
+        # response = await async_client.post("/stream_events", json={})
+        # assert response.status_code == 422
+        ### END LG_MODIFICATION
 
 
 async def test_server_bound_async(app_for_config: FastAPI) -> None:
