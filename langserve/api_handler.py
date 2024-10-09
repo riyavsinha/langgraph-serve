@@ -48,6 +48,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from typing_extensions import TypedDict
 
+from langchain_core.messages import HumanMessage
 from langserve._pydantic import _create_root_model
 from langserve.callbacks import AsyncEventAggregatorCallback, CallbackEventDict
 from langserve.lzstring import LZString
@@ -69,6 +70,7 @@ from langserve.validation import (
     BatchRequestShallowValidator,
     InvokeBaseResponse,
     InvokeRequestShallowValidator,
+    LanggraphAddHumanMessageRequestValidator,
     StreamEventsParameters,
     StreamLogParameters,
     create_batch_request_model,
@@ -1466,7 +1468,7 @@ class APIHandler:
         return EventSourceResponse(_stream_events())
     
     ### START LG_MODIFICATION
-    async def update_langgraph_state(
+    async def langgraph_update_state(
         self,
         request: Request,
         *,
@@ -1500,6 +1502,51 @@ class APIHandler:
         self._runnable.update_state(config, filtered_input)
 
         return Response(status_code=200)
+    
+    async def langgraph_add_human_message(
+        self,
+        request: Request,
+        *,
+        config_hash: str = "",
+        server_config: Optional[RunnableConfig] = None,
+    ):
+        """Update the langgraph runnable state with the given input and config.
+
+        Args:
+            request: The request object.
+            config_hash: A compressed representation of a config.
+                Originates from the client side. This config must be validated.
+            server_config: optional server configuration that will be merged
+                with any other configuration. It's the last to be written, so
+                it will override any other configuration.
+        """
+        if not hasattr(self._runnable, "update_state"):
+            raise HTTPException(
+                400,
+                "The runnable is not a LangGraph graph.",
+            )
+
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            raise RequestValidationError(errors=["Invalid JSON body"])
+        with _with_validation_error_translation():
+            body = LanggraphAddHumanMessageRequestValidator.model_validate(body)
+            config = await _unpack_request_config(
+                config_hash,
+                body.config,
+                config_keys=self._config_keys,
+                model=self._ConfigPayload,
+                request=request,
+                per_req_config_modifier=self._per_req_config_modifier,
+                server_config=server_config,
+            )
+        msg = HumanMessage(
+            content=body.input
+        )
+        self._runnable.update_state(config, {body.messages_state_var: [msg]})
+        state = self._runnable.get_state(config).values
+        return JSONResponse(content=state[body.messages_state_var][-1].dict())
     ### END LG_MODIFICATION
 
     async def input_schema(

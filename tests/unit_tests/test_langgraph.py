@@ -38,6 +38,11 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 
+class NonstandardMessagesState(TypedDict):
+    input: str
+    weird_named_messages: Annotated[list, add_messages]
+
+
 @pytest.fixture()
 def simple_graph() -> StateGraph:
     graph_builder = StateGraph(State)
@@ -96,7 +101,8 @@ def interrupting_app(interrupting_graph: StateGraph):
         yield a
     finally:
         del a
-        
+
+
 @pytest.fixture()
 def non_langgraph_app() -> FastAPI:
     """A simple server that wraps a Runnable and exposes it as an API."""
@@ -164,17 +170,16 @@ def test_interrupting_langgraph(interrupting_app: FastAPI):
         assert response["messages"][1].content == "Resuming execution!"
 
 
-def test_update_langgraph_state_endpoint(interrupting_app: FastAPI):
+def test_langgraph_update_state_endpoint(interrupting_app: FastAPI):
     with get_sync_remote_runnable(interrupting_app) as remote_runnable:
         config = {"configurable": {"thread_id": "2"}}
-        config = {"configurable": {"thread_id": "1"}}
         response = remote_runnable.invoke(
             {"input": "Hello, world!", "messages": []}, config=config
         )
         assert response["messages"][0].content == "Hello, world!"
 
         # Add message according to langgraph state reducer
-        response = remote_runnable.update_langgraph_state(
+        response = remote_runnable.langgraph_update_state(
             {"messages": [AIMessage(content="modified!")]}, config=config
         )
         assert response is True
@@ -187,10 +192,84 @@ def test_update_langgraph_state_endpoint(interrupting_app: FastAPI):
         assert response["messages"][1].content == "modified!"
         assert response["messages"][2].content == "Resuming execution!"
 
-def test_update_langgraph_state_fails_non_langgraph(non_langgraph_app: FastAPI):
+
+def test_langgraph_update_state_fails_non_langgraph(non_langgraph_app: FastAPI):
     with get_sync_remote_runnable(non_langgraph_app) as remote_runnable:
-        config = {"configurable": {"thread_id": "1"}}
+        config = {"configurable": {"thread_id": "3"}}
         with pytest.raises(httpx.HTTPError):
-            remote_runnable.update_langgraph_state(
+            remote_runnable.langgraph_update_state(
                 {"messages": [AIMessage(content="modified!")]}, config=config
+            )
+
+
+def test_langgraph_add_human_message_endpoint(interrupting_app: FastAPI):
+    with get_sync_remote_runnable(interrupting_app) as remote_runnable:
+        config = {"configurable": {"thread_id": "4"}}
+        response = remote_runnable.invoke(
+            {"input": "Hello, world!", "messages": []}, config=config
+        )
+        assert response["messages"][0].content == "Hello, world!"
+
+        # Add message according to langgraph state reducer
+        response = remote_runnable.langgraph_add_human_message(
+            "added message", config=config
+        )
+        assert response is True
+
+        response = remote_runnable.invoke(
+            {}, config=config
+        )
+        assert len(response["messages"]) == 3
+        assert response["messages"][0].content == "Hello, world!"
+        assert response["messages"][1].content == "added message"
+        assert response["messages"][2].content == "Resuming execution!"
+
+
+def test_langgraph_add_human_message_endpoint_custom_message_var():
+    graph_builder = StateGraph(NonstandardMessagesState)
+    llm = RunnablePassthrough()
+
+    def chatbot(state: NonstandardMessagesState):
+        return {"weird_named_messages": [llm.invoke(state["input"])]}
+
+    def post_interrupt(state: NonstandardMessagesState):
+        return {"weird_named_messages": [AIMessage(content="Resuming execution!")]}
+
+    graph_builder.add_node("chatbot", chatbot)
+    graph_builder.add_node("post_interrupt", post_interrupt)
+    graph_builder.add_edge(START, "chatbot")
+    graph_builder.add_edge("chatbot", "post_interrupt")
+    graph_builder.add_edge("post_interrupt", END)
+    graph = graph_builder.compile(
+        checkpointer=MemorySaver(), interrupt_after=["chatbot"])
+
+    a = app(graph)
+    with get_sync_remote_runnable(a) as remote_runnable:
+        config = {"configurable": {"thread_id": "52"}}
+        response = remote_runnable.invoke(
+            {"input": "Hello, world!", "weird_named_messages": []}, config=config
+        )
+        assert response["weird_named_messages"][0].content == "Hello, world!"
+
+        # Add message according to langgraph state reducer
+        response = remote_runnable.langgraph_add_human_message(
+            "added message", messages_state_var="weird_named_messages", config=config
+        )
+        assert response is True
+
+        response = remote_runnable.invoke(
+            {}, config=config
+        )
+        assert len(response["weird_named_messages"]) == 3
+        assert response["weird_named_messages"][0].content == "Hello, world!"
+        assert response["weird_named_messages"][1].content == "added message"
+        assert response["weird_named_messages"][2].content == "Resuming execution!"
+
+
+def test_langgraph_add_human_message_fails_non_langgraph(non_langgraph_app: FastAPI):
+    with get_sync_remote_runnable(non_langgraph_app) as remote_runnable:
+        config = {"configurable": {"thread_id": "6"}}
+        with pytest.raises(httpx.HTTPError):
+            remote_runnable.langgraph_add_human_message(
+                'should fail', config=config
             )

@@ -369,6 +369,16 @@ class BatchRequestShallowValidator(BaseModel):
         default_factory=dict
     )
 
+### START LG_MODIFICATION
+class LanggraphAddHumanMessageRequestValidator(BaseModel):
+    """Validator for Add Human Message Request."""
+
+    input: str = Field(None, description="The input human message to add.")
+    messages_state_var: str = Field("messages", description="The LangGraph state variable name for messages.")
+    config: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = Field(
+        default_factory=dict
+    )
+### END LG_MODIFICATION
 
 class StreamLogParameters(BaseModel):
     """Shallow validator for Stream Log Request"""

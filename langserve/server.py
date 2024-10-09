@@ -66,7 +66,8 @@ EndpointName = Literal[
     "output_schema",
     "config_hashes",
     ### START LG_MODIFICATION
-    "update_langgraph_state",
+    "langgraph_update_state",
+    "langgraph_add_human_message"
     ### END LG_MODIFICATION
 ]
 
@@ -87,7 +88,8 @@ KNOWN_ENDPOINTS = {
     "output_schema",
     "config_hashes",
     ### START LG_MODIFICATION
-    "update_langgraph_state",
+    "langgraph_update_state",
+    "langgraph_add_human_message"
     ### END LG_MODIFICATION
 }
 
@@ -285,7 +287,8 @@ def add_routes(
     * /output_schema - for returning the output schema of the runnable
     * /config_schema - for returning the config schema of the runnable
     ### START LG_MODIFICATION
-    * /update_langgraph_state - for updating the state of a langgraph runnable
+    * /langgraph_update_state - for updating the state of a langgraph runnable
+    * /langgraph_add_human_message - for adding a human message to a langgraph runnable message list
     ### END LG_MODIFICATION
 
     Args:
@@ -609,15 +612,27 @@ def add_routes(
     ### START LG_MODIFICATION
     # TODO: Make conditional / disableable
     @app.post(
-        f"{namespace}/update_langgraph_state",
+        f"{namespace}/langgraph_update_state",
         include_in_schema=False,
         dependencies=dependencies,
     )
-    async def update_langgraph_state(request: Request) -> Response:
+    async def langgraph_update_state(request: Request) -> Response:
         """Handle a request."""
         # The API Handler validates the parts of the request
         # that are used by the runnnable (e.g., input, config fields)
-        return await api_handler.update_langgraph_state(request)
+        return await api_handler.langgraph_update_state(request)
+    
+    # TODO: Make conditional / disableable
+    @app.post(
+        f"{namespace}/langgraph_add_human_message",
+        include_in_schema=False,
+        dependencies=dependencies,
+    )
+    async def langgraph_add_human_message(request: Request) -> Response:
+        """Handle a request."""
+        # The API Handler validates the parts of the request
+        # that are used by the runnnable (e.g., input, config fields)
+        return await api_handler.langgraph_add_human_message(request)
     ### END LG_MODIFICATION
 
 

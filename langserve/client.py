@@ -860,19 +860,38 @@ class RemoteRunnable(Runnable[Input, Output]):
             await run_manager.on_chain_end(events)
 
     ### START LG_MODIFICATION
-    def update_langgraph_state(
+    def langgraph_update_state(
         self, input: Input, config: Optional[RunnableConfig] = None, **kwargs: Any
     ):
         if kwargs:
             raise NotImplementedError(
-                "kwargs not implemented for update_langgraph_state endpoint.")
+                "kwargs not implemented for langgraph_update_state endpoint.")
         response = self.sync_client.post(
-            "/update_langgraph_state",
+            "/langgraph_update_state",
             json={
                 "input": self._lc_serializer.dumpd(input),
                 "config": _prepare_config_for_server(config),
                 "kwargs": kwargs,
             },
+        )
+        _raise_for_status(response)
+        return response.is_success
+    
+    def langgraph_add_human_message(
+        self, input: Input, messages_state_var: Optional[str] = None, config: Optional[RunnableConfig] = None, **kwargs: Any
+    ):
+        if kwargs:
+            raise NotImplementedError(
+                "kwargs not implemented for langgraph_add_human_message endpoint.")
+        req_body = {
+                "input": self._lc_serializer.dumpd(input),
+                "config": _prepare_config_for_server(config),
+            }
+        if messages_state_var:
+            req_body["messages_state_var"] = messages_state_var
+        response = self.sync_client.post(
+            "/langgraph_add_human_message",
+            json=req_body,
         )
         _raise_for_status(response)
         return response.is_success
