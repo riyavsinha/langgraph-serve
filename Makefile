@@ -9,6 +9,9 @@ build-playground:
 build: build-playground
 	poetry build
 
+build-lgs:
+	if [ -d langgraph_serve ]; then rm -r langgraph_serve; fi && cp -r langserve langgraph_serve && find langgraph_serve -type f -name "*.py" -print0 | xargs -0 sed -i '' 's/from langserve/from langgraph_serve/g' && poetry build
+
 ######################
 # TESTING AND COVERAGE
 ######################

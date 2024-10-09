@@ -165,3 +165,8 @@ cython_debug/
 .idea
 
 .DS_Store
+
+# For development, keep using langserve/ directory to keep in sync
+# with upstream fork. This directory should only be a temporary copy 
+# created to publish under the right package name.
+langgraph_serve/

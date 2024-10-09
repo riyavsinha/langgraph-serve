@@ -1,16 +1,13 @@
 [tool.poetry]
-name = "langgraph-serve"
-version = "0.3.0"
+name = "langgraph_serve"
+version = "0.3.3"
 description = ""
 readme = "README.md"
-authors = ["LangChain", "Riya Sinha"]
+authors = ["Riya Sinha", "LangChain"]
 license = "LangServe"
 repository = "https://github.com/riyavsinha/langgraph-serve"
-exclude = ["langserve/playground,langserve/chat_playground"]
-include = ["langserve/playground/dist/**/*", "langserve/chat_playground/dist/**/*"]
-packages = [
-    { include = "langserve" }
-]
+exclude = ["langgraph_serve/playground,langgraph_serve/chat_playground"]
+include = ["langgraph_serve/playground/dist/**/*", "langgraph_serve/chat_playground/dist/**/*", "langgraph_serve/**/*"]
 
 [tool.poetry.dependencies]
 python = "^3.9"

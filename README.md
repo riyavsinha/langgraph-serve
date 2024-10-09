@@ -6,6 +6,73 @@
 pip install langgraph-serve
 ```
 
+## How To Use
+
+Simply take the `CompiledStateGraph` and use the `add_routes` function as you would in LangServe.
+
+```python
+from typing import Annotated
+from fastapi import FastAPI
+from typing_extensions import TypedDict
+
+from langgraph.graph.message import add_messages
+from langgraph.graph import StateGraph, START, END
+from langchain_core.runnables import RunnablePassthrough
+from langgraph_serve.server import add_routes
+from langchain_core.messages import AIMessage
+from langgraph.checkpoint.memory import MemorySaver
+
+
+# Make your FastAPI app
+app = FastAPI(
+    title="LangChain Server",
+    version="1.0",
+    description="Spin up a simple api server using Langchain's Runnable interfaces",
+)
+
+# Make your LangGraph state
+class State(TypedDict):
+    input: str
+    messages: Annotated[list, add_messages]
+
+
+# Make your LangGraph graph
+graph_builder = StateGraph(State)
+llm = RunnablePassthrough()
+def chatbot(state: State):
+    return {"messages": [llm.invoke(state["input"])]}
+def post_interrupt(state: State):
+    return {"messages": [AIMessage(content="Resuming execution!")]}
+graph_builder.add_node("chatbot", chatbot)
+graph_builder.add_node("post_interrupt", post_interrupt)
+graph_builder.add_edge(START, "chatbot")
+graph_builder.add_edge("chatbot", "post_interrupt")
+graph_builder.add_edge("post_interrupt", END)
+graph = graph_builder.compile(checkpointer=MemorySaver(), interrupt_after=["chatbot"])
+
+# Add graph routes to your FastAPI app
+add_routes(app, graph)
+
+# Run your FastAPI app
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="localhost", port=8000)
+```
+
+You can then make requests to the server as you would in LangServe. Send empty inputs to resume execution of the graph runnable:
+
+```bash
+$ curl -X POST localhost:8000/invoke \
+     -H "Content-Type: application/json" \
+     -d '{"input": {"input": "hi", "messages": []}, "config": {"configurable": {"thread_id": "1"}}}'
+{"output":{"input":"hi","messages":[{"content":"hi","additional_kwargs":{},"response_metadata":{},"type":"human","name":null,"id":"f197cb86-6df3-4d7b-99ef-ddf36773f2ba","example":false}]},"metadata":{"run_id":"63d3ce41-94a1-4394-a3e1-6911f93c0cc5","feedback_tokens":[]}}%                                                                               
+
+$ curl -X POST localhost:8000/invoke \
+     -H "Content-Type: application/json" \
+     -d '{"input": {}, "config": {"configurable": {"thread_id": "1"}}}' 
+{"output":{"input":"hi","messages":[{"content":"hi","additional_kwargs":{},"response_metadata":{},"type":"human","name":null,"id":"f197cb86-6df3-4d7b-99ef-ddf36773f2ba","example":false},{"content":"Resuming execution!","additional_kwargs":{},"response_metadata":{},"type":"ai","name":null,"id":"8235fb72-8052-48ea-8360-d07ab6243b44","example":false,"tool_calls":[],"invalid_tool_calls":[],"usage_metadata":null}]},"metadata":{"run_id":"63f58dbc-af3e-4776-9071-1cdf646a304e","feedback_tokens":[]}}% 
+```
+
 ## Fork Notes
 
 This repository is intended to make modifications to the LangServe library to better support LangGraph runnables.
