@@ -38,6 +38,7 @@ pytest-mock = "^3.11.1"
 pytest-socket = "^0.6.0"
 pytest-watch = "^4.2.0"
 pytest-timeout = "^2.2.0"
+langgraph = "^0.2.34"
 
 [tool.poetry.group.examples.dependencies]
 openai = "^0.28.0"
