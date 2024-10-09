@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from typing import Optional, Union, Annotated
+import httpx
 from typing_extensions import TypedDict
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request
 import pytest
@@ -95,6 +96,29 @@ def interrupting_app(interrupting_graph: StateGraph):
         yield a
     finally:
         del a
+        
+@pytest.fixture()
+def non_langgraph_app() -> FastAPI:
+    """A simple server that wraps a Runnable and exposes it as an API."""
+
+    async def add_one_or_passthrough(
+        x: Union[int, HumanMessage],
+    ) -> Union[int, HumanMessage]:
+        """Add one to int or passthrough."""
+        if isinstance(x, int):
+            return x + 1
+        else:
+            return x
+
+    runnable_lambda = RunnableLambda(func=add_one_or_passthrough)
+    app = FastAPI()
+    try:
+        add_routes(
+            app, runnable_lambda, config_keys=["tags"], include_callback_events=True
+        )
+        yield app
+    finally:
+        del app
 
 
 @contextmanager
@@ -162,3 +186,11 @@ def test_update_langgraph_state_endpoint(interrupting_app: FastAPI):
         assert response["messages"][0].content == "Hello, world!"
         assert response["messages"][1].content == "modified!"
         assert response["messages"][2].content == "Resuming execution!"
+
+def test_update_langgraph_state_fails_non_langgraph(non_langgraph_app: FastAPI):
+    with get_sync_remote_runnable(non_langgraph_app) as remote_runnable:
+        config = {"configurable": {"thread_id": "1"}}
+        with pytest.raises(httpx.HTTPError):
+            remote_runnable.update_langgraph_state(
+                {"messages": [AIMessage(content="modified!")]}, config=config
+            )

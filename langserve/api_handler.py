@@ -1483,18 +1483,18 @@ class APIHandler:
                 with any other configuration. It's the last to be written, so
                 it will override any other configuration.
         """
+        if not hasattr(self._runnable, "update_state"):
+            raise HTTPException(
+                400,
+                "The runnable is not a LangGraph graph.",
+            )
+
         config, input_ = await self._get_config_and_input(
             request,
             config_hash,
             server_config=server_config,
             # input_required=True,
         )
-
-        if not hasattr(self._runnable, "update_state"):
-            raise HTTPException(
-                400,
-                "The runnable is not a LangGraph graph.",
-            )
 
         filtered_input = {k: v for k, v in input_.items() if v is not None}
         self._runnable.update_state(config, filtered_input)

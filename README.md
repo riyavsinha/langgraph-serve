@@ -9,9 +9,9 @@ Modified regions will be demarcated with comments like `# STARG LG_MODIFICATION`
 List of modifications:
 - [api_handler] Change Runnable schema to partial. This allows only a part of the LangGraph state to be passed in as input to the Runnable, and allows LangGraph to populate the rest of the state as the chain runs.
 - [api_handler,validation] Allow `None` as a valid value for the `input` field in the APIHandler request body. This allows the user to continue LangGraph chains after interruptions per the LangGraph specification.
+- [api_handler,server,client] Enable updating langgraph state through server request or RemoteRunnable client interface.
 
 TODO(help-wanted):
-- [x] Add api_handler method for updating state
 - [ ] Make updating langgraph state endpoint disableable
 - [ ] Add api_handler method for adding messages
 

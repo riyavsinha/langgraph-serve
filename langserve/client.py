@@ -874,5 +874,6 @@ class RemoteRunnable(Runnable[Input, Output]):
                 "kwargs": kwargs,
             },
         )
+        _raise_for_status(response)
         return response.is_success
     ### END LG_MODIFICATION
