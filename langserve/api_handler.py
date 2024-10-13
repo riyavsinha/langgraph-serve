@@ -1499,7 +1499,7 @@ class APIHandler:
         )
 
         filtered_input = {k: v for k, v in input_.items() if v is not None}
-        self._runnable.update_state(config, filtered_input)
+        await self._runnable.aupdate_state(config, filtered_input)
 
         return Response(status_code=200)
     
@@ -1544,8 +1544,8 @@ class APIHandler:
         msg = HumanMessage(
             content=body.input
         )
-        self._runnable.update_state(config, {body.messages_state_var: [msg]})
-        state = self._runnable.get_state(config).values
+        await self._runnable.aupdate_state(config, {body.messages_state_var: [msg]})
+        state = (await self._runnable.aget_state(config)).values
         return JSONResponse(content=state[body.messages_state_var][-1].dict())
     ### END LG_MODIFICATION
 
