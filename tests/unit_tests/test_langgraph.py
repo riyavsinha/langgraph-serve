@@ -202,7 +202,7 @@ def test_langgraph_update_state_fails_non_langgraph(non_langgraph_app: FastAPI):
             )
 
 
-def test_langgraph_add_human_message_endpoint(interrupting_app: FastAPI):
+def test_langgraph_add_message_endpoint(interrupting_app: FastAPI):
     with get_sync_remote_runnable(interrupting_app) as remote_runnable:
         config = {"configurable": {"thread_id": "4"}}
         response = remote_runnable.invoke(
@@ -211,8 +211,8 @@ def test_langgraph_add_human_message_endpoint(interrupting_app: FastAPI):
         assert response["messages"][0].content == "Hello, world!"
 
         # Add message according to langgraph state reducer
-        response = remote_runnable.langgraph_add_human_message(
-            "added message", config=config
+        response = remote_runnable.langgraph_add_message(
+            "added message", "human", config=config
         )
         assert response is True
 
@@ -222,6 +222,7 @@ def test_langgraph_add_human_message_endpoint(interrupting_app: FastAPI):
         assert len(response["messages"]) == 3
         assert response["messages"][0].content == "Hello, world!"
         assert response["messages"][1].content == "added message"
+        assert response["messages"][1].type == "human"
         assert response["messages"][2].content == "Resuming execution!"
 
 
@@ -252,8 +253,8 @@ def test_langgraph_add_human_message_endpoint_custom_message_var():
         assert response["weird_named_messages"][0].content == "Hello, world!"
 
         # Add message according to langgraph state reducer
-        response = remote_runnable.langgraph_add_human_message(
-            "added message", messages_state_var="weird_named_messages", config=config
+        response = remote_runnable.langgraph_add_message(
+            "added message", "system", messages_state_var="weird_named_messages", config=config
         )
         assert response is True
 
@@ -263,6 +264,7 @@ def test_langgraph_add_human_message_endpoint_custom_message_var():
         assert len(response["weird_named_messages"]) == 3
         assert response["weird_named_messages"][0].content == "Hello, world!"
         assert response["weird_named_messages"][1].content == "added message"
+        assert response["weird_named_messages"][1].type == "system"
         assert response["weird_named_messages"][2].content == "Resuming execution!"
 
 
@@ -270,6 +272,6 @@ def test_langgraph_add_human_message_fails_non_langgraph(non_langgraph_app: Fast
     with get_sync_remote_runnable(non_langgraph_app) as remote_runnable:
         config = {"configurable": {"thread_id": "6"}}
         with pytest.raises(httpx.HTTPError):
-            remote_runnable.langgraph_add_human_message(
-                'should fail', config=config
+            remote_runnable.langgraph_add_message(
+                'should fail', 'ai', config=config
             )

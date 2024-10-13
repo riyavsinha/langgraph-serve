@@ -16,6 +16,7 @@ Models are created with a namespace to avoid name collisions when hosting
 multiple runnables. When present the name collisions prevent fastapi from
 generating OpenAPI specs.
 """
+from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Sequence, Union
 from uuid import UUID
 
@@ -370,10 +371,19 @@ class BatchRequestShallowValidator(BaseModel):
     )
 
 ### START LG_MODIFICATION
-class LanggraphAddHumanMessageRequestValidator(BaseModel):
-    """Validator for Add Human Message Request."""
 
-    input: str = Field(None, description="The input human message to add.")
+class MessageType(str, Enum):
+    """Enum for the type of message to add."""
+
+    HUMAN = "human"
+    SYSTEM = "system"
+    AI = "ai"
+
+class LanggraphAddMessageRequestValidator(BaseModel):
+    """Validator for Add Message Request."""
+
+    input: str = Field(None, description="The input message to add.")
+    message_type: MessageType = Field(None, description="The type of message to add.")
     messages_state_var: str = Field("messages", description="The LangGraph state variable name for messages.")
     config: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = Field(
         default_factory=dict

@@ -48,7 +48,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from typing_extensions import TypedDict
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langserve._pydantic import _create_root_model
 from langserve.callbacks import AsyncEventAggregatorCallback, CallbackEventDict
 from langserve.lzstring import LZString
@@ -70,7 +70,8 @@ from langserve.validation import (
     BatchRequestShallowValidator,
     InvokeBaseResponse,
     InvokeRequestShallowValidator,
-    LanggraphAddHumanMessageRequestValidator,
+    LanggraphAddMessageRequestValidator,
+    MessageType,
     StreamEventsParameters,
     StreamLogParameters,
     create_batch_request_model,
@@ -1503,7 +1504,7 @@ class APIHandler:
 
         return Response(status_code=200)
     
-    async def langgraph_add_human_message(
+    async def langgraph_add_message(
         self,
         request: Request,
         *,
@@ -1531,7 +1532,7 @@ class APIHandler:
         except json.JSONDecodeError:
             raise RequestValidationError(errors=["Invalid JSON body"])
         with _with_validation_error_translation():
-            body = LanggraphAddHumanMessageRequestValidator.model_validate(body)
+            body = LanggraphAddMessageRequestValidator.model_validate(body)
             config = await _unpack_request_config(
                 config_hash,
                 body.config,
@@ -1541,7 +1542,18 @@ class APIHandler:
                 per_req_config_modifier=self._per_req_config_modifier,
                 server_config=server_config,
             )
-        msg = HumanMessage(
+        if body.message_type == MessageType.HUMAN:
+            msg_cls = HumanMessage
+        elif body.message_type == MessageType.SYSTEM:
+            msg_cls = SystemMessage
+        elif body.message_type == MessageType.AI:
+            msg_cls = AIMessage
+        else:
+            raise HTTPException(
+                400,
+                "Invalid message type.",
+            )
+        msg = msg_cls(
             content=body.input
         )
         await self._runnable.aupdate_state(config, {body.messages_state_var: [msg]})

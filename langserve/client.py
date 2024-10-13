@@ -46,6 +46,7 @@ from langserve.serialization import (
     load_events,
 )
 from langserve.server_sent_events import aconnect_sse, connect_sse
+from langserve.validation import MessageType
 
 logger = logging.getLogger(__name__)
 
@@ -877,20 +878,21 @@ class RemoteRunnable(Runnable[Input, Output]):
         _raise_for_status(response)
         return response.is_success
     
-    def langgraph_add_human_message(
-        self, input: Input, messages_state_var: Optional[str] = None, config: Optional[RunnableConfig] = None, **kwargs: Any
+    def langgraph_add_message(
+        self, input: Input, message_type: MessageType, messages_state_var: Optional[str] = None, config: Optional[RunnableConfig] = None, **kwargs: Any
     ):
         if kwargs:
             raise NotImplementedError(
-                "kwargs not implemented for langgraph_add_human_message endpoint.")
+                "kwargs not implemented for langgraph_add_message endpoint.")
         req_body = {
                 "input": self._lc_serializer.dumpd(input),
+                "message_type": message_type,
                 "config": _prepare_config_for_server(config),
             }
         if messages_state_var:
             req_body["messages_state_var"] = messages_state_var
         response = self.sync_client.post(
-            "/langgraph_add_human_message",
+            "/langgraph_add_message",
             json=req_body,
         )
         _raise_for_status(response)

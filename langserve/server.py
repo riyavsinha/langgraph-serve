@@ -67,7 +67,7 @@ EndpointName = Literal[
     "config_hashes",
     ### START LG_MODIFICATION
     "langgraph_update_state",
-    "langgraph_add_human_message"
+    "langgraph_add_message"
     ### END LG_MODIFICATION
 ]
 
@@ -89,7 +89,7 @@ KNOWN_ENDPOINTS = {
     "config_hashes",
     ### START LG_MODIFICATION
     "langgraph_update_state",
-    "langgraph_add_human_message"
+    "langgraph_add_message"
     ### END LG_MODIFICATION
 }
 
@@ -288,7 +288,7 @@ def add_routes(
     * /config_schema - for returning the config schema of the runnable
     ### START LG_MODIFICATION
     * /langgraph_update_state - for updating the state of a langgraph runnable
-    * /langgraph_add_human_message - for adding a human message to a langgraph runnable message list
+    * /langgraph_add_message - for adding a human message to a langgraph runnable message list
     ### END LG_MODIFICATION
 
     Args:
@@ -624,15 +624,15 @@ def add_routes(
     
     # TODO: Make conditional / disableable
     @app.post(
-        f"{namespace}/langgraph_add_human_message",
+        f"{namespace}/langgraph_add_message",
         include_in_schema=False,
         dependencies=dependencies,
     )
-    async def langgraph_add_human_message(request: Request) -> Response:
+    async def langgraph_add_message(request: Request) -> Response:
         """Handle a request."""
         # The API Handler validates the parts of the request
         # that are used by the runnnable (e.g., input, config fields)
-        return await api_handler.langgraph_add_human_message(request)
+        return await api_handler.langgraph_add_message(request)
     ### END LG_MODIFICATION
 
 
